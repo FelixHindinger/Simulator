@@ -17,7 +17,7 @@
           "num_gateways": 0},
         "stratified" : {
           "layers": 3,
-          "layer_size": 3,
+          "layer_size": 10,
           "num_gateways": 0
         },
         "multi_cascade" : {
@@ -34,17 +34,21 @@
         "min_msg_size": 2,
         "max_msg_size": 2},
     "mixnodes": {
-			"avg_delay": 0.1,
+			"avg_delay_latency": 0.3,                      
+      "avg_delay_anonymity": 5,                        
       "batch": false,
       "batch_size" : 1000,
 			"AQM":false},
     "clients": {
-        "number":100,
+        "number": 100,
+        "sharelowlatency": 0.9,
         "sim_add_buffer": 1.0,
-        "rate_sending": 1.0,
+        "rate_sending_latency": 5.0,          
+        "rate_sending_anonymity": 1.0,        
         "rate_ack": 0.5,
         "cover_traffic":false,
-        "cover_traffic_rate":1.0,
+        "cover_traffic_rate_latency": 1.0,    
+        "cover_traffic_rate_anonymity": 1.0,  
         "ACK":false,
         "retransmit":false,
         "dummies_acks":false,

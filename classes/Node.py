@@ -13,12 +13,13 @@ class Node(object):
         self.conf = conf
         self.id = id or random_string(self.conf["misc"]["id_len"])
         self.net = net
+        self.type = None        #type=1 for low latency, type=2 for high anonymity
 
         self.pkts_received = 0
         self.pkts_sent = 0
 
 
-        self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay"] == 0.0 else float(self.conf["mixnodes"]["avg_delay"])
+        #self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay"] == 0.0 else float(self.conf["mixnodes"]["avg_delay"])
 
         # State
         self.pool = {}
@@ -29,14 +30,14 @@ class Node(object):
         self.mixlogging = False
 
         self.loggers = loggers if loggers else None
-        (self.packet_logger, self.message_logger, self.entropy_logger) = self.loggers
+        (self.packet_logger1, self.packet_logger2, self.message_logger, self.entropy_logger1, self.entropy_logger2) = self.loggers
         #State
         self.alive = True
 
-        self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending"])
+        self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_latency"])
         self.rate_generating = float(self.conf["clients"]["sim_add_buffer"]) # this specifies how often we put a real message into a buffer
         self.cover_traffic = self.conf["clients"]["cover_traffic"]
-        self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate"])
+        self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_latency"])
 
         self.verbose = False
         self.pkt_buffer_out = []
@@ -93,7 +94,10 @@ class Node(object):
             while True:
                 if self.alive:
                     if delays == []:
-                        delays = list(np.random.exponential(self.cover_traffic_rate, 10000))
+                        if self.type == 2:
+                            delays = list(np.random.exponential(self.cover_traffic_rate_anonymity, 10000))
+                        else:
+                            delays = list(np.random.exponential(self.cover_traffic_rate_latency, 10000))
 
                     delay = delays.pop()
                     yield self.env.timeout(float(delay))
@@ -163,8 +167,11 @@ class Node(object):
                     self.free_to_batch = False
                     self.env.process(self.process_batch_round())
             else:
+                if packet.real_sender.type == 2:                        #   choose correct delay
+                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
+                elif packet.real_sender.type ==1 : 
+                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_latency"]))
 
-                delay = get_exponential_delay(self.avg_delay) if self.avg_delay != 0.0 else 0.0
                 wait = delay + 0.000386 # add the time of processing the Sphinx packet (benchmarked using our Sphinx rust implementation).
                 yield self.env.timeout(wait)
 
@@ -193,9 +200,10 @@ class Node(object):
             if not msg.complete_receiving:
                 msg.register_received_pkt(packet)
                 self.msg_buffer_in[msg.id] = msg
-                if self.conf["logging"]["enabled"] and self.packet_logger is not None and self.start_logs:
-                    self.packet_logger.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
-
+                if self.conf["logging"]["enabled"] and packet.real_sender.type ==1 and self.packet_logger1 is not None and self.start_logs:
+                    self.packet_logger1.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
+                elif self.conf["logging"]["enabled"] and packet.real_sender.type ==2 and self.packet_logger2 is not None and self.start_logs:
+                    self.packet_logger2.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
             if msg.complete_receiving:
                 msg_transit_time = (msg.time_delivered - msg.time_sent)
                 if self.conf["logging"]["enabled"] and self.message_logger is not None and self.start_logs:
@@ -242,9 +250,14 @@ class Node(object):
 
 
     def update_entropy(self, packet):
-        for i, pr in enumerate(packet.probability_mass):
-            if pr != 0.0:
-                self.env.entropy[i] += -(float(pr) * math.log(float(pr), 2))
+        if packet.real_sender.type == 1:
+            for i, pr in enumerate(packet.probability_mass):
+                if pr != 0.0:
+                    self.env.entropy_latency[i] += -(float(pr) * math.log(float(pr), 2))
+        elif packet.real_sender.type ==2:
+            for i, pr in enumerate(packet.probability_mass):
+                if pr != 0.0:
+                    self.env.entropy_anonymity[i] += -(float(pr) * math.log(float(pr), 2))
 
 
     def add_pkt_in_pool(self, packet):
@@ -325,3 +338,12 @@ class Node(object):
 
     def __repr__(self):
         return self.id
+
+    def setType(self, type):
+        self.type = type
+        if type == 1:
+            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_latency"])
+            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_latency"])
+        elif type == 2:
+            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_anonymity"])
+            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_anonymity"])
