@@ -162,6 +162,7 @@ def run_client_server(env, conf, net, loggers):
         c.verbose = True
         env.process(c.start(random.choice(clients)))
         env.process(c.start_loop_cover_traffc())
+        counter +=1
 
     env.process(SenderT1.start(dest=recipient))
     env.process(SenderT1.start_loop_cover_traffc())
