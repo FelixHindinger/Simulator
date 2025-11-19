@@ -18,6 +18,12 @@ def get_exponential_delay(avg_delay, cache=[]):
 
     return cache.pop()
 
+def get_exponential_delay_anonymity(avg_delay, cache=[]):
+    if cache == []:
+        cache.extend(list(numpy.random.exponential(avg_delay, 10000)))
+
+    return cache.pop()
+
 class StructuredMessage(object):
     def __init__(self, metadata):
         self.metadata = metadata

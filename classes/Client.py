@@ -35,3 +35,4 @@ class Client(Node):
         ''' Method prints all the messages gathered in the buffer of incoming messages.'''
         for msg in self.msg_buffer_in:
             msg.output()
+

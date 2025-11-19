@@ -1,4 +1,4 @@
-from classes.Utilities import random_string, StructuredMessage, get_exponential_delay
+from classes.Utilities import random_string, StructuredMessage, get_exponential_delay, get_exponential_delay_anonymity
 import math
 import numpy as np
 from classes.Packet import Packet
@@ -19,8 +19,6 @@ class Node(object):
         self.pkts_sent = 0
 
 
-        #self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay"] == 0.0 else float(self.conf["mixnodes"]["avg_delay"])
-
         # State
         self.pool = {}
         self.inter_pkts = 0 #ctr which count how many new packets arrived since the last time a packet left
@@ -30,14 +28,14 @@ class Node(object):
         self.mixlogging = False
 
         self.loggers = loggers if loggers else None
-        (self.packet_logger1, self.packet_logger2, self.message_logger, self.entropy_logger1, self.entropy_logger2) = self.loggers
+        (self.packet_logger, self.message_logger, self.entropy_logger) = self.loggers
         #State
         self.alive = True
 
-        self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_latency"])
+        self.rate_sending = 0
         self.rate_generating = float(self.conf["clients"]["sim_add_buffer"]) # this specifies how often we put a real message into a buffer
         self.cover_traffic = self.conf["clients"]["cover_traffic"]
-        self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_latency"])
+        self.cover_traffic_rate = 0
 
         self.verbose = False
         self.pkt_buffer_out = []
@@ -167,10 +165,11 @@ class Node(object):
                     self.free_to_batch = False
                     self.env.process(self.process_batch_round())
             else:
-                if packet.real_sender.type == 2:                        #   choose correct delay
-                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
-                elif packet.real_sender.type ==1 : 
+                if packet.real_sender.type == 1:
                     delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_latency"]))
+                elif packet.real_sender.type == 2:
+                    delay = get_exponential_delay_anonymity(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
+                    print(delay)
 
                 wait = delay + 0.000386 # add the time of processing the Sphinx packet (benchmarked using our Sphinx rust implementation).
                 yield self.env.timeout(wait)
@@ -200,10 +199,8 @@ class Node(object):
             if not msg.complete_receiving:
                 msg.register_received_pkt(packet)
                 self.msg_buffer_in[msg.id] = msg
-                if self.conf["logging"]["enabled"] and packet.real_sender.type ==1 and self.packet_logger1 is not None and self.start_logs:
-                    self.packet_logger1.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
-                elif self.conf["logging"]["enabled"] and packet.real_sender.type ==2 and self.packet_logger2 is not None and self.start_logs:
-                    self.packet_logger2.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
+                if self.conf["logging"]["enabled"] and self.packet_logger is not None and self.start_logs:
+                    self.packet_logger.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
             if msg.complete_receiving:
                 msg_transit_time = (msg.time_delivered - msg.time_sent)
                 if self.conf["logging"]["enabled"] and self.message_logger is not None and self.start_logs:
@@ -250,14 +247,9 @@ class Node(object):
 
 
     def update_entropy(self, packet):
-        if packet.real_sender.type == 1:
-            for i, pr in enumerate(packet.probability_mass):
-                if pr != 0.0:
-                    self.env.entropy_latency[i] += -(float(pr) * math.log(float(pr), 2))
-        elif packet.real_sender.type ==2:
-            for i, pr in enumerate(packet.probability_mass):
-                if pr != 0.0:
-                    self.env.entropy_anonymity[i] += -(float(pr) * math.log(float(pr), 2))
+        for i, pr in enumerate(packet.probability_mass):
+            if pr != 0.0:
+                self.env.entropy[i] += -(float(pr) * math.log(float(pr), 2))
 
 
     def add_pkt_in_pool(self, packet):
@@ -344,6 +336,8 @@ class Node(object):
         if type == 1:
             self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_latency"])
             self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_latency"])
+            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_latency"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_latency"])
         elif type == 2:
             self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_anonymity"])
             self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_anonymity"])
+            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_anonymity"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_anonymity"])

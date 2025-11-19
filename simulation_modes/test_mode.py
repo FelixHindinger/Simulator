@@ -17,22 +17,17 @@ throughput = 0.0
 
 def get_loggers(log_dir, conf):
 
-    packet_logger1 = setup_logger('simulation1.packet', os.path.join(log_dir, 'packet_log_latency.csv'))
-    packet_logger1.info(StructuredMessage(metadata=("Type", "CurrentTime", "ClientID", "PacketID", "PacketType", "MessageID", "PacketTimeQueued", "PacketTimeSent", "PacketTimeDelivered", "TotalFragments", "PrOthers", "PrSenderA", "PrSenderB", "RealSenderLabel", "Route", "PoolSizes")))
-
-    packet_logger2 = setup_logger('simulation2.packet', os.path.join(log_dir, 'packet_log_anonymity.csv'))
-    packet_logger2.info(StructuredMessage(metadata=("Type", "CurrentTime", "ClientID", "PacketID", "PacketType", "MessageID", "PacketTimeQueued", "PacketTimeSent", "PacketTimeDelivered", "TotalFragments", "PrOthers", "PrSenderA", "PrSenderB", "RealSenderLabel", "Route", "PoolSizes")))
+    packet_logger = setup_logger('simulation.packet', os.path.join(log_dir, 'packet_log.csv'))
+    packet_logger.info(StructuredMessage(metadata=("Type", "CurrentTime", "ClientID", "PacketID", "PacketType", "MessageID", "PacketTimeQueued", "PacketTimeSent", "PacketTimeDelivered", "TotalFragments", "PrOthers", "PrSenderA", "PrSenderB", "RealSenderLabel", "Route", "PoolSizes")))
 
     message_logger = setup_logger('simulation.messages', os.path.join(log_dir, 'message_log.csv'))
     message_logger.info(StructuredMessage(metadata=("Type", "CurrentTime", "ClientID", "MessageID", "NumPackets", "MsgTimeQueued", "MsgTimeSent", "MsgTimeDelivered", "MsgTransitTime", "MsgSize", "MsgRealSender")))
 
-    entropy_logger1 = setup_logger('simulation1.mix', os.path.join(log_dir, 'last_mix_entropy_latency.csv'))
-    entropy_logger1.info(StructuredMessage(metadata=tuple(['Entropy'+str(x) for x in range(int(conf["misc"]["num_target_packets"]))])))
+    entropy_logger = setup_logger('simulation.mix', os.path.join(log_dir, 'last_mix_entropy.csv'))
+    entropy_logger.info(StructuredMessage(metadata=tuple(['Entropy'+str(x) for x in range(int(conf["misc"]["num_target_packets"]))])))
 
-    entropy_logger2 = setup_logger('simulation2.mix', os.path.join(log_dir, 'last_mix_entropy_anonymity.csv'))
-    entropy_logger2.info(StructuredMessage(metadata=tuple(['Entropy'+str(x) for x in range(int(conf["misc"]["num_target_packets"]))])))
 
-    return (packet_logger1, packet_logger2, message_logger, entropy_logger1, entropy_logger2)
+    return (packet_logger, message_logger, entropy_logger)
 
 
 def setup_env(conf):
@@ -42,8 +37,8 @@ def setup_env(conf):
     env.total_messages_sent = 0
     env.total_messages_received = 0
     env.finished = False
-    env.entropy_latency = numpy.zeros(int(conf["misc"]["num_target_packets"]))
-    env.entropy_anonymity = numpy.zeros(int(conf["misc"]["num_target_packets"]))
+    env.entropy = numpy.zeros(int(conf["misc"]["num_target_packets"]))
+
 
     return env
 
@@ -94,9 +89,6 @@ def run_p2p(env, conf, net, loggers):
     env.process(SenderT1.simulate_adding_packets_into_buffer(recipient))
     print("> Started sending low latency traffic for measurments")
 
-    env.process(SenderT2.simulate_adding_packets_into_buffer(recipient))
-    print("> Started sending high anonymity traffic for measurments")
-
     env.run(until=env.stop_sim_event)  # Run until the stop_sim_event is triggered.
     print("> Main part of simulation finished. Starting cooldown phase.")
 
@@ -106,8 +98,7 @@ def run_p2p(env, conf, net, loggers):
 
 
     # Log entropy
-    loggers[3].info(StructuredMessage(metadata=tuple(env.entropy_latency)))
-    loggers[4].info(StructuredMessage(metadata=tuple(env.entropy_anonymity)))
+    loggers[2].info(StructuredMessage(metadata=tuple(env.entropy)))
     print("> Cooldown phase finished.")
 
     time_finished = env.now
@@ -135,13 +126,13 @@ def run_client_server(env, conf, net, loggers):
     print("Number of active clients: ", len(clients))
 
     SenderT1 = clients.pop()
-    SenderT1.setType(type=1)       #low latency target sender
+    SenderT1.setType(type=2)       #low latency target sender
     SenderT1.label = 1
     SenderT1.verbose = True
     print("Target Sender1: ", SenderT1.id)
 
     SenderT2 = clients.pop()
-    SenderT2.setType(type=2)       #high latency target sender
+    SenderT2.setType(type=1)       #high latency target sender
     SenderT2.label = 2
     SenderT2.verbose = True
     print("Target Sender2: ", SenderT2.id)
@@ -162,6 +153,7 @@ def run_client_server(env, conf, net, loggers):
         c.verbose = True
         env.process(c.start(random.choice(clients)))
         env.process(c.start_loop_cover_traffc())
+        counter +=1
 
     env.process(SenderT1.start(dest=recipient))
     env.process(SenderT1.start_loop_cover_traffc())
@@ -189,21 +181,16 @@ def run_client_server(env, conf, net, loggers):
     env.process(SenderT1.simulate_adding_packets_into_buffer(recipient))
     print("> Started sending low latency traffic for measurments")
 
-    env.process(SenderT2.simulate_adding_packets_into_buffer(recipient))
-    print("> Started sending high anonymity traffic for measurments")
-
     env.run(until=env.stop_sim_event)  # Run until the stop_sim_event is triggered.
     print("> Main part of simulation finished. Starting cooldown phase.")
 
     # Log entropy
-    loggers[3].info(StructuredMessage(metadata=tuple(env.entropy_latency)))
-    loggers[4].info(StructuredMessage(metadata=tuple(env.entropy_anonymity)))
+    loggers[2].info(StructuredMessage(metadata=tuple(env.entropy)))
     # ------ RUNNING THE COOLDOWN PHASE ----------
     env.run(until=env.now + conf["phases"]["cooldown"])
 
     # Log entropy
-    loggers[3].info(StructuredMessage(metadata=tuple(env.entropy_latency)))
-    loggers[4].info(StructuredMessage(metadata=tuple(env.entropy_anonymity)))
+    loggers[2].info(StructuredMessage(metadata=tuple(env.entropy)))
 
     print("> Cooldown phase finished.")
     time_finished = env.now
