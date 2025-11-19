@@ -126,13 +126,13 @@ def run_client_server(env, conf, net, loggers):
     print("Number of active clients: ", len(clients))
 
     SenderT1 = clients.pop()
-    SenderT1.setType(type=2)       #low latency target sender
+    SenderT1.setType(type=1)       #low latency target sender
     SenderT1.label = 1
     SenderT1.verbose = True
     print("Target Sender1: ", SenderT1.id)
 
     SenderT2 = clients.pop()
-    SenderT2.setType(type=1)       #high latency target sender
+    SenderT2.setType(type=2)       #high latency target sender
     SenderT2.label = 2
     SenderT2.verbose = True
     print("Target Sender2: ", SenderT2.id)
@@ -179,7 +179,7 @@ def run_client_server(env, conf, net, loggers):
         p.mixlogging = True
 
     env.process(SenderT1.simulate_adding_packets_into_buffer(recipient))
-    print("> Started sending low latency traffic for measurments")
+    print("> Started sending traffic for measurments")
 
     env.run(until=env.stop_sim_event)  # Run until the stop_sim_event is triggered.
     print("> Main part of simulation finished. Starting cooldown phase.")

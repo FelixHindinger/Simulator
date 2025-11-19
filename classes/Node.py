@@ -92,10 +92,7 @@ class Node(object):
             while True:
                 if self.alive:
                     if delays == []:
-                        if self.type == 2:
-                            delays = list(np.random.exponential(self.cover_traffic_rate_anonymity, 10000))
-                        else:
-                            delays = list(np.random.exponential(self.cover_traffic_rate_latency, 10000))
+                        delays = list(np.random.exponential(self.cover_traffic_rate, 10000))
 
                     delay = delays.pop()
                     yield self.env.timeout(float(delay))
@@ -166,10 +163,9 @@ class Node(object):
                     self.env.process(self.process_batch_round())
             else:
                 if packet.real_sender.type == 1:
-                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_latency"]))
+                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_1"]))
                 elif packet.real_sender.type == 2:
-                    delay = get_exponential_delay_anonymity(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
-                    print(delay)
+                    delay = get_exponential_delay_anonymity(float(self.conf["mixnodes"]["avg_delay_2"]))
 
                 wait = delay + 0.000386 # add the time of processing the Sphinx packet (benchmarked using our Sphinx rust implementation).
                 yield self.env.timeout(wait)
@@ -334,10 +330,10 @@ class Node(object):
     def setType(self, type):
         self.type = type
         if type == 1:
-            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_latency"])
-            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_latency"])
-            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_latency"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_latency"])
+            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_1"])
+            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_1"])
+            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_1"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_1"])
         elif type == 2:
-            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_anonymity"])
-            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_anonymity"])
-            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_anonymity"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_anonymity"])
+            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_2"])
+            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_2"])
+            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_2"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_2"])

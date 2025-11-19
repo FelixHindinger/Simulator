@@ -34,8 +34,8 @@
         "min_msg_size": 2,
         "max_msg_size": 2},
     "mixnodes": {
-			"avg_delay_latency": 100.0,                      
-      "avg_delay_anonymity": 5.0,                        
+			"avg_delay_1": 5,                      
+      "avg_delay_2": 0.3,                        
       "batch": false,
       "batch_size" : 1000,
 			"AQM":false},
@@ -43,17 +43,17 @@
         "number": 100,
         "sharelowlatency": 0.9,
         "sim_add_buffer": 1.0,
-        "rate_sending_latency": 5.0,          
-        "rate_sending_anonymity": 1.0,        
+        "rate_sending_1": 1.0,          
+        "rate_sending_2": 5.0,        
         "rate_ack": 0.5,
-        "cover_traffic":false,
-        "cover_traffic_rate_latency": 1.0,    
-        "cover_traffic_rate_anonymity": 1.0,  
+        "cover_traffic":true,
+        "cover_traffic_rate_1": 1.0,    
+        "cover_traffic_rate_2": 1.0,  
         "ACK":false,
         "retransmit":false,
         "dummies_acks":false,
         "max_retransmissions":5},
     "misc": {
         "id_len": 32,
-        "num_target_packets": 1}
+        "num_target_packets": 100}
 }
