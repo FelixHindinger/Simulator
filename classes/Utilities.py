@@ -12,7 +12,13 @@ def random_string(size):
     return hexlify(urandom(size)).decode('utf8')
     # return ''.join(random.choice(chars) for x in range(size))
 
-def get_exponential_delay(avg_delay, cache=[]):
+def get_exponential_delay_latency(avg_delay, cache=[]):
+    if cache == []:
+        cache.extend(list(numpy.random.exponential(avg_delay, 10000)))
+
+    return cache.pop()
+
+def get_exponential_delay_anonymity(avg_delay, cache=[]):
     if cache == []:
         cache.extend(list(numpy.random.exponential(avg_delay, 10000)))
 

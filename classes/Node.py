@@ -1,4 +1,4 @@
-from classes.Utilities import random_string, StructuredMessage, get_exponential_delay
+from classes.Utilities import random_string, StructuredMessage, get_exponential_delay_anonymity, get_exponential_delay_latency
 import math
 import numpy as np
 from classes.Packet import Packet
@@ -168,9 +168,9 @@ class Node(object):
                     self.env.process(self.process_batch_round())
             else:
                 if packet.real_sender.type == 2:                        #   choose correct delay
-                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
+                    delay = get_exponential_delay_anonymity(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
                 elif packet.real_sender.type ==1 : 
-                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_latency"]))
+                    delay = get_exponential_delay_latency(float(self.conf["mixnodes"]["avg_delay_latency"]))
 
                 wait = delay + 0.000386 # add the time of processing the Sphinx packet (benchmarked using our Sphinx rust implementation).
                 yield self.env.timeout(wait)
@@ -254,7 +254,7 @@ class Node(object):
             for i, pr in enumerate(packet.probability_mass):
                 if pr != 0.0:
                     self.env.entropy_latency[i] += -(float(pr) * math.log(float(pr), 2))
-        elif packet.real_sender.type ==2:
+        elif packet.real_sender.type == 2:
             for i, pr in enumerate(packet.probability_mass):
                 if pr != 0.0:
                     self.env.entropy_anonymity[i] += -(float(pr) * math.log(float(pr), 2))
