@@ -146,7 +146,7 @@ def run_client_server(env, conf, net, loggers):
 
     counter = 0
     for c in clients:
-        if counter < conf["clients"]["number"] * conf["clients"]["sharelowlatency"] - 2:        #assign type to clients
+        if counter < conf["clients"]["number"] * conf["clients"]["share_1"] - 2:        #assign type to clients
             c.setType(type=1)
         else:
             c.setType(type=2)
