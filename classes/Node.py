@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from classes.Utilities import random_string, StructuredMessage, get_exponential_delay_anonymity, get_exponential_delay_latency
-=======
-from classes.Utilities import random_string, StructuredMessage, get_exponential_delay, get_exponential_delay_anonymity
->>>>>>> 1cd80d3f1b7f64c5ccd7f59ac3e38f38b2d5e8d0
+from classes.Utilities import random_string, StructuredMessage, get_exponential_delay_2, get_exponential_delay_1
 import math
 import numpy as np
 from classes.Packet import Packet
@@ -36,8 +32,8 @@ class Node(object):
         #State
         self.alive = True
 
-        self.rate_sending = 0
-        self.rate_generating = float(self.conf["clients"]["sim_add_buffer"]) # this specifies how often we put a real message into a buffer
+        self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending"])
+        self.rate_generating = 0 # this specifies how often we put a real message into a buffer
         self.cover_traffic = self.conf["clients"]["cover_traffic"]
         self.cover_traffic_rate = 0
 
@@ -166,17 +162,10 @@ class Node(object):
                     self.free_to_batch = False
                     self.env.process(self.process_batch_round())
             else:
-<<<<<<< HEAD
-                if packet.real_sender.type == 2:                        #   choose correct delay
-                    delay = get_exponential_delay_anonymity(float(self.conf["mixnodes"]["avg_delay_anonymity"]))
-                elif packet.real_sender.type ==1 : 
-                    delay = get_exponential_delay_latency(float(self.conf["mixnodes"]["avg_delay_latency"]))
-=======
                 if packet.real_sender.type == 1:
-                    delay = get_exponential_delay(float(self.conf["mixnodes"]["avg_delay_1"]))
+                    delay = get_exponential_delay_1(float(self.conf["mixnodes"]["avg_delay_1"]))
                 elif packet.real_sender.type == 2:
-                    delay = get_exponential_delay_anonymity(float(self.conf["mixnodes"]["avg_delay_2"]))
->>>>>>> 1cd80d3f1b7f64c5ccd7f59ac3e38f38b2d5e8d0
+                    delay = get_exponential_delay_2(float(self.conf["mixnodes"]["avg_delay_2"]))
 
                 wait = delay + 0.000386 # add the time of processing the Sphinx packet (benchmarked using our Sphinx rust implementation).
                 yield self.env.timeout(wait)
@@ -254,20 +243,9 @@ class Node(object):
 
 
     def update_entropy(self, packet):
-<<<<<<< HEAD
-        if packet.real_sender.type == 1:
-            for i, pr in enumerate(packet.probability_mass):
-                if pr != 0.0:
-                    self.env.entropy_latency[i] += -(float(pr) * math.log(float(pr), 2))
-        elif packet.real_sender.type == 2:
-            for i, pr in enumerate(packet.probability_mass):
-                if pr != 0.0:
-                    self.env.entropy_anonymity[i] += -(float(pr) * math.log(float(pr), 2))
-=======
         for i, pr in enumerate(packet.probability_mass):
             if pr != 0.0:
                 self.env.entropy[i] += -(float(pr) * math.log(float(pr), 2))
->>>>>>> 1cd80d3f1b7f64c5ccd7f59ac3e38f38b2d5e8d0
 
 
     def add_pkt_in_pool(self, packet):
@@ -352,10 +330,10 @@ class Node(object):
     def setType(self, type):
         self.type = type
         if type == 1:
-            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_1"])
+            self.rate_generating = 1.0/float(self.conf["clients"]["sim_add_buffer_1"])
             self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_1"])
             self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_1"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_1"])
         elif type == 2:
-            self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending_2"])
+            self.rate_generating = 1.0/float(self.conf["clients"]["sim_add_buffer_2"])
             self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_2"])
             self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_2"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_2"])

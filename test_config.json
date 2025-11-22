@@ -17,7 +17,7 @@
           "num_gateways": 0},
         "stratified" : {
           "layers": 3,
-          "layer_size": 10,
+          "layer_size": 3,
           "num_gateways": 0
         },
         "multi_cascade" : {
@@ -42,12 +42,12 @@
     "clients": {
         "number": 100,
         "share_1": 0.9,
-        "sim_add_buffer": 1.0,
-        "rate_sending_1": 5.0,       
-        "rate_sending_2": 1.0,        
+        "sim_add_buffer_1": 5.0,
+        "sim_add_buffer_2": 1.0,
+        "rate_sending": 5.0,             
         "rate_ack": 0.5,
         "cover_traffic":true,
-        "cover_traffic_rate_1": 1.0,    
+        "cover_traffic_rate_1": 5.0,    
         "cover_traffic_rate_2": 5.0,  
         "ACK":false,
         "retransmit":false,
