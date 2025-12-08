@@ -26,6 +26,7 @@ def get_loggers(log_dir, conf):
     entropy_logger = setup_logger('simulation.mix', os.path.join(log_dir, 'last_mix_entropy.csv'))
     entropy_logger.info(StructuredMessage(metadata=tuple(['Entropy'+str(x) for x in range(int(conf["misc"]["num_target_packets"]))])))
 
+
     return (packet_logger, message_logger, entropy_logger)
 
 
@@ -37,6 +38,7 @@ def setup_env(conf):
     env.total_messages_received = 0
     env.finished = False
     env.entropy = numpy.zeros(int(conf["misc"]["num_target_packets"]))
+
 
     return env
 
@@ -85,7 +87,7 @@ def run_p2p(env, conf, net, loggers):
         p.mixlogging = True
 
     env.process(SenderT1.simulate_adding_packets_into_buffer(recipient))
-    print("> Started sending traffic for measurments")
+    print("> Started sending low latency traffic for measurments")
 
     env.run(until=env.stop_sim_event)  # Run until the stop_sim_event is triggered.
     print("> Main part of simulation finished. Starting cooldown phase.")
@@ -124,25 +126,34 @@ def run_client_server(env, conf, net, loggers):
     print("Number of active clients: ", len(clients))
 
     SenderT1 = clients.pop()
+    SenderT1.setType(type=1)       #low latency target sender
     SenderT1.label = 1
     SenderT1.verbose = True
     print("Target Sender1: ", SenderT1.id)
 
     SenderT2 = clients.pop()
+    SenderT2.setType(type=2)       #high latency target sender
     SenderT2.label = 2
     SenderT2.verbose = True
     print("Target Sender2: ", SenderT2.id)
 
     recipient = clients.pop()
+    recipient.setType(type=1)
     recipient.verbose = True
     print("Target Recipient: ", recipient.id)
 
     net.mixnodes[0].verbose = True
 
+    counter = 0
     for c in clients:
+        if counter < conf["clients"]["number"] * conf["clients"]["share_1"] - 2:        #assign type to clients
+            c.setType(type=1)
+        else:
+            c.setType(type=2)
         c.verbose = True
         env.process(c.start(random.choice(clients)))
         env.process(c.start_loop_cover_traffc())
+        counter +=1
 
     env.process(SenderT1.start(dest=recipient))
     env.process(SenderT1.start_loop_cover_traffc())

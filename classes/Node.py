@@ -1,4 +1,4 @@
-from classes.Utilities import random_string, StructuredMessage, get_exponential_delay
+from classes.Utilities import random_string, StructuredMessage, get_exponential_delay_2, get_exponential_delay_1
 import math
 import numpy as np
 from classes.Packet import Packet
@@ -13,12 +13,11 @@ class Node(object):
         self.conf = conf
         self.id = id or random_string(self.conf["misc"]["id_len"])
         self.net = net
+        self.type = None        #type=1 for low latency, type=2 for high anonymity
 
         self.pkts_received = 0
         self.pkts_sent = 0
 
-
-        self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay"] == 0.0 else float(self.conf["mixnodes"]["avg_delay"])
 
         # State
         self.pool = {}
@@ -34,9 +33,9 @@ class Node(object):
         self.alive = True
 
         self.rate_sending = 1.0/float(self.conf["clients"]["rate_sending"])
-        self.rate_generating = float(self.conf["clients"]["sim_add_buffer"]) # this specifies how often we put a real message into a buffer
+        self.rate_generating = 0 # this specifies how often we put a real message into a buffer
         self.cover_traffic = self.conf["clients"]["cover_traffic"]
-        self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate"])
+        self.cover_traffic_rate = 0
 
         self.verbose = False
         self.pkt_buffer_out = []
@@ -163,8 +162,11 @@ class Node(object):
                     self.free_to_batch = False
                     self.env.process(self.process_batch_round())
             else:
+                if packet.real_sender.type == 1:
+                    delay = get_exponential_delay_1(float(self.conf["mixnodes"]["avg_delay_1"]))
+                elif packet.real_sender.type == 2:
+                    delay = get_exponential_delay_2(float(self.conf["mixnodes"]["avg_delay_2"]))
 
-                delay = get_exponential_delay(self.avg_delay) if self.avg_delay != 0.0 else 0.0
                 wait = delay + 0.000386 # add the time of processing the Sphinx packet (benchmarked using our Sphinx rust implementation).
                 yield self.env.timeout(wait)
 
@@ -195,7 +197,6 @@ class Node(object):
                 self.msg_buffer_in[msg.id] = msg
                 if self.conf["logging"]["enabled"] and self.packet_logger is not None and self.start_logs:
                     self.packet_logger.info(StructuredMessage(metadata=("RCV_PKT_REAL", self.env.now, self.id, packet.id, packet.type, packet.msg_id, packet.time_queued, packet.time_sent, packet.time_delivered, packet.fragments, packet.sender_estimates[0], packet.sender_estimates[1], packet.sender_estimates[2], packet.real_sender.label, packet.route, packet.pool_logs)))
-
             if msg.complete_receiving:
                 msg_transit_time = (msg.time_delivered - msg.time_sent)
                 if self.conf["logging"]["enabled"] and self.message_logger is not None and self.start_logs:
@@ -325,3 +326,14 @@ class Node(object):
 
     def __repr__(self):
         return self.id
+
+    def setType(self, type):
+        self.type = type
+        if type == 1:
+            self.rate_generating = 1.0/float(self.conf["clients"]["sim_add_buffer_1"])
+            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_1"])
+            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_1"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_1"])
+        elif type == 2:
+            self.rate_generating = 1.0/float(self.conf["clients"]["sim_add_buffer_2"])
+            self.cover_traffic_rate = 1.0/float(self.conf["clients"]["cover_traffic_rate_2"])
+            self.avg_delay = 0.0 if self.conf["mixnodes"]["avg_delay_2"] == 0.0 else float(self.conf["mixnodes"]["avg_delay_2"])
