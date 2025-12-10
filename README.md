@@ -16,4 +16,5 @@ To run the simulator you need the command
 You can change the parameters of the simulation in file `test_config.json`
 
 The functionality of this simulator has only been tested for the stratified topology used in my thesis.
-
+Measurements can only be taken for one traffic type per simulation run at the moment.
+In order to take measurements for a configurations, the parameters for the traffic type that should be measured are put into the configuration file as values for the "_1"-parameters. 
