@@ -1,6 +1,6 @@
 # Simulator
 
-This repository contains a modified implementation of the mix network simulator proposed by Piotrowska (https://github.com/aniampio/Simulator).
+This repository contains a modified implementation of the mix network simulator proposed by Piotrowska (https://github.com/aniampio/Simulator)  used for my bachelor thesis.
 
 The implementation is done using Python 3. 
 Before running the code remember to make sure that you have all the dependencies installed.
