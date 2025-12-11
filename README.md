@@ -19,6 +19,6 @@ The functionality of this simulator has only been tested for the stratified topo
 
 Measurements can only be taken for one traffic type per simulation run at the moment.
 
-In order to take measurements for a configurations, the parameters for the traffic type that should be measured are put into the configuration file as values for the "_1"-parameters. 
+In order to take measurements for a configuration, the parameters for the traffic type that should be measured are put into the configuration file as values for the "_1"-parameters. 
 
 The measurements taken for this thesis can be found in the /measurements folder in the repository.
